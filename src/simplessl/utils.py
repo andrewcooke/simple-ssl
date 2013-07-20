@@ -97,18 +97,25 @@ class IO:
         self._log('\n Copying {0} to {1}', source, path)
         with open(source, 'r') as inp, open(path, 'w') as out:
             out.write(inp.read())
+        # TODO mode
 
     def _menu(self, title, choices, default=0):
         self._log(title)
+        reason = ''
         for i, choice in enumerate(choices):
             if isinstance(choice, tuple):
                 choice, option = choice
                 _option = underscore(option)
-                if _option in self.__args and self.__args[_option] is not None: default = i
+                if _option in self.__args and self.__args[_option] is not None:
+                    reason = ' (--%s given)' % option
+                    default = i
             self._log('{0}: {1}', i, choice)
-        if self.__defaults: return default
+        prompt = '[default %d%s] > ' % (default, reason)
+        if self.__defaults:
+            self._log(prompt)
+            return default
         while True:
-            value = input('[default %d] > ' % default)
+            value = input(prompt)
             try:
                 if not value: value = default
                 value = int(value)
