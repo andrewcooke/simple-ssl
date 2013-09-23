@@ -26,6 +26,16 @@
 #     value, etc.
 
 
+def instances(cls, container):
+    try: container = vars(container)
+    except TypeError: pass
+    for name, value in container.items():
+        if isinstance(value, cls): yield name, value
+
+
+
+
+
 class ClsAttr:
     '''
     Base class for class attributes.  This is the class that CmdMeta
@@ -60,10 +70,13 @@ class CmdMeta(type):
     Metaclass that configures class attributes as command line parameters.
     '''
 
+    def __new__(cls, name, bases, dct):
+        return super().__new__(cls, name, bases, dct)
+
     def __init__(cls, name, bases, dct):
-        super(CmdMeta, cls).__init__(name, bases, dct)
-        for name, value in dct.items():
-            if isinstance(value, ClsAttr): value.set_name(name)
+        super().__init__(name, bases, dct)
+        for name, value in instances(ClsAttr, dct):
+            value.set_name(name)
 
 
 class CmdBase(metaclass=CmdMeta):
@@ -74,15 +87,8 @@ class CmdBase(metaclass=CmdMeta):
 
     def __new__(cls, *args, **kargs):
         instance = super(CmdBase, cls).__new__(cls, *args, **kargs)
-        for name, value in vars(cls).items():
-            if isinstance(value, ClsAttr):
-                setattr(instance, name, value.to_instance())
+        for name, value in instances(ClsAttr, cls):
+            setattr(instance, name, value.to_instance())
         return instance
 
 
-class Cmd(CmdBase):
-    '''
-    Extends CmdBase with useful utilities.
-    '''
-
-    debug = ClsAttr(InsAttr)

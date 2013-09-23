@@ -1,6 +1,6 @@
 
 from unittest import TestCase
-from script.cmd import InsAttr, ClsAttr, CmdBase
+from script.base import InsAttr, ClsAttr, CmdBase
 
 
 class Foo(CmdBase):
