@@ -28,7 +28,7 @@ class Bar(CmdBase):
     bar = ArgPOpt(InsAttr)
 
 class Foo2(CmdBase):
-    bar = ClsAttr(Bar)
+    bar = ArgPOpt(Bar)
     foo = ArgPOpt(InsAttr)
     def __call__(self): pass
 
@@ -39,6 +39,7 @@ class NestedTest(TestCase):
         debug('test_nested')
         argp = ArgPRun(Foo2)
         parser = argp.build_parser()
-        args = parser.parse_args(['--foo', 'poop'])
+        args = parser.parse_args(['--foo', 'poop', '--bar-bar', 'doop'])
         assert args.foo == 'poop', args
-        argp.run(args, {})
+        cmd = argp.construct(args, {})
+        assert cmd.bar.bar._default == 'doop', cmd.bar.bar._default

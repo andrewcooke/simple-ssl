@@ -1,4 +1,7 @@
 
+from logging import debug
+
+
 # the classes here are intended to support the writing of scripts that
 # require input from the user.  the input can be supplied on the command
 # line when invoking the script, or as an interactive prompt.  each input
@@ -24,7 +27,6 @@
 #   - the __call__ method triggers script execution.
 #   - when an attribute is accessed, it may prompt the user, cache the
 #     value, etc.
-from logging import debug
 
 
 def instances(cls, container):
@@ -54,7 +56,10 @@ class ClsAttr:
         if defaults is not None:
             if issubclass(self._itype, CmdBase):
                 debug('propagating defaults to embedded CmdBase')
-                kargs['defaults'] = defaults
+                kargs['defaults'] = \
+                    dict((name[len(self._name)+1:], value)
+                         for name, value in defaults.items()
+                         if name.startswith(self._name))
             elif self._name in defaults:
                 debug('setting default to %r for %s' % (defaults[self._name], self._name))
                 kargs['default'] = defaults[self._name]
