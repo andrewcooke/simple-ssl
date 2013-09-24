@@ -1,35 +1,44 @@
+
+from logging import basicConfig, DEBUG, debug
 from unittest import TestCase
+
 from script.argp import ArgPOpt, ArgPRun
-from script.base import CmdBase, ClsAttr
+from script.base import CmdBase, ClsAttr, InsAttr
+
+
+basicConfig(level=DEBUG)
 
 
 class Foo(CmdBase):
 
-    foo = ArgPOpt(ClsAttr)
+    foo = ArgPOpt(InsAttr)
 
 
 class ArgPTest(TestCase):
 
     def test_parser(self):
+        debug('test_parser')
         argp = ArgPRun(Foo)
         parser = argp.build_parser()
         args = parser.parse_args(['--foo', 'poop'])
         assert args.foo == 'poop', args
 
 
+class Bar(CmdBase):
+    bar = ArgPOpt(InsAttr)
+
 class Foo2(CmdBase):
-
-    class Bar(CmdBase):
-        bar = ArgPOpt(ClsAttr)
-
-    foo = ArgPOpt(ClsAttr)
+    bar = ClsAttr(Bar)
+    foo = ArgPOpt(InsAttr)
+    def __call__(self): pass
 
 
 class NestedTest(TestCase):
 
     def test_nested(self):
+        debug('test_nested')
         argp = ArgPRun(Foo2)
         parser = argp.build_parser()
-        args = parser.parse_args(['--foo', 'poop', '--bar-bar', 'stinky'])
+        args = parser.parse_args(['--foo', 'poop'])
         assert args.foo == 'poop', args
-        assert args.bar_bar == 'stinky'
+        argp.run(args, {})

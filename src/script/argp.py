@@ -17,8 +17,12 @@ class ArgPRun:
 
     def __call__(self, **kargs):
         parser = self.build_parser()
-        args = parser.parse_args()
-        cmd = self._cmd(**dict(chain(vars(args).items(), kargs.items())))
+        self.run(parser.parse_args(), kargs)
+
+    def run(self, args, kargs):
+        kargs = dict(kargs)
+        kargs['defaults'] = vars(args)
+        cmd = self._cmd(**kargs)
         cmd()
 
     def build_parser(self):

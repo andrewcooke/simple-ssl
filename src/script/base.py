@@ -24,6 +24,7 @@
 #   - the __call__ method triggers script execution.
 #   - when an attribute is accessed, it may prompt the user, cache the
 #     value, etc.
+from logging import debug
 
 
 def instances(cls, container):
@@ -31,9 +32,6 @@ def instances(cls, container):
     except TypeError: pass
     for name, value in container.items():
         if isinstance(value, cls): yield name, value
-
-
-
 
 
 class ClsAttr:
@@ -51,8 +49,17 @@ class ClsAttr:
     def set_name(self, name):
         if not self._name: self._name = name
 
-    def to_instance(self):
-        return self._itype(name=self._name, *self._args, **self._kargs)
+    def to_instance(self, defaults=None):
+        kargs = dict(self._kargs)
+        if defaults is not None:
+            if issubclass(self._itype, CmdBase):
+                debug('propagating defaults to embedded CmdBase')
+                kargs['defaults'] = defaults
+            elif self._name in defaults:
+                debug('setting default to %r for %s' % (defaults[self._name], self._name))
+                kargs['default'] = defaults[self._name]
+        debug('instantiating %s %s with %r %r' % (self._itype, self._name, self._args, kargs))
+        return self._itype(name=self._name, *self._args, **kargs)
 
 
 class InsAttr:
@@ -61,8 +68,9 @@ class InsAttr:
     are responsible for prompting the user, caching values, etc.
     '''
 
-    def __init__(self, name):
+    def __init__(self, name, default=None):
         self._name = name
+        self._default = default
 
 
 class CmdMeta(type):
@@ -85,10 +93,17 @@ class CmdBase(metaclass=CmdMeta):
     child).
     '''
 
-    def __new__(cls, *args, **kargs):
-        instance = super(CmdBase, cls).__new__(cls, *args, **kargs)
+    def __init__(self, name=None, defaults=None):
+        '''
+        defaults is ignored here; it was used by __new__.
+        '''
+        self._name = name
+
+    def __new__(cls, *args, defaults=None, **kargs):
+        if defaults is None: defaults = {}
+        debug('creating %r with %r %r' % (cls, args, kargs))
+        instance = super(CmdBase, cls).__new__(cls)
         for name, value in instances(ClsAttr, cls):
-            setattr(instance, name, value.to_instance())
+            debug('converting %s from class to instance attribute' % name)
+            setattr(instance, name, value.to_instance(defaults=defaults))
         return instance
-
-
