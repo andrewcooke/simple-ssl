@@ -1,6 +1,8 @@
 
 from logging import debug
 
+from script.attr import TypedAttr, InsAttr
+
 
 # the classes here are intended to support the writing of scripts that
 # require input from the user.  the input can be supplied on the command
@@ -28,6 +30,15 @@ from logging import debug
 #   - when an attribute is accessed, it may prompt the user, cache the
 #     value, etc.
 
+# for more complex projects, commands can be nested.  this gives a natural
+# grouping for attributes and allows the use of a common prefix in their
+# names.  the downside of grouping is that it is harder to share global (for
+# all commands) configuration.  so we also broadcast a "root" element that
+# can be delegated to when needed.
+
+# nesting also modifies further the names of instance attributes, which
+# inherit parent names as prefixes.
+
 
 def instances(cls, container):
     try: container = vars(container)
@@ -43,39 +54,33 @@ class ClsAttr:
     '''
 
     def __init__(self, itype, name=None, *args, **kargs):
-        self._itype = itype
-        self._name = name
-        self._args = args
-        self._kargs = kargs
+        if isinstance(itype, ClsAttr):  # making a copy to add argparse, for example
+            debug('copying %s to %s' % (itype, self))
+            self._itype = itype._itype
+            self._name = itype._name
+            self._args = itype._args
+            self._kargs = itype._kargs
+        else:
+            self._itype = itype
+            self._name = name
+            self._args = args
+            self._kargs = kargs
 
-    def set_name(self, name):
-        if not self._name: self._name = name
-
-    def to_instance(self, defaults=None):
+    def to_instance(self, root, prefix, values=None):
         kargs = dict(self._kargs)
-        if defaults is not None:
+        if values is not None:
             if issubclass(self._itype, CmdBase):
-                debug('propagating defaults to embedded CmdBase')
-                kargs['defaults'] = \
+                debug('propagating values to embedded CmdBase')
+                kargs['values'] = \
                     dict((name[len(self._name)+1:], value)
-                         for name, value in defaults.items()
+                         for name, value in values.items()
                          if name.startswith(self._name))
-            elif self._name in defaults:
-                debug('setting default to %r for %s' % (defaults[self._name], self._name))
-                kargs['default'] = defaults[self._name]
+            elif self._name in values:
+                debug('setting value to %r for %s' % (values[self._name], self._name))
+                kargs['value'] = values[self._name]
         debug('instantiating %s %s with %r %r' % (self._itype, self._name, self._args, kargs))
-        return self._itype(name=self._name, *self._args, **kargs)
-
-
-class InsAttr:
-    '''
-    Base class for instance attributes.  Subclasses exist on instances and
-    are responsible for prompting the user, caching values, etc.
-    '''
-
-    def __init__(self, name, default=None):
-        self._name = name
-        self._default = default
+        if not prefix.endswith('-'): prefix += '-'
+        return self._itype(name=prefix + self._name, *self._args, root=root, **kargs)
 
 
 class CmdMeta(type):
@@ -88,8 +93,7 @@ class CmdMeta(type):
 
     def __init__(cls, name, bases, dct):
         super().__init__(name, bases, dct)
-        for name, value in instances(ClsAttr, dct):
-            value.set_name(name)
+        for name, value in instances(ClsAttr, dct): value._name = name
 
 
 class CmdBase(metaclass=CmdMeta):
@@ -98,17 +102,26 @@ class CmdBase(metaclass=CmdMeta):
     child).
     '''
 
-    def __init__(self, name=None, defaults=None):
-        '''
-        defaults is ignored here; it was used by __new__.
-        '''
+    def __init__(self, name='--', **ignored):
         self._name = name
 
-    def __new__(cls, *args, defaults=None, **kargs):
-        if defaults is None: defaults = {}
+    def __new__(cls, *args, root=None, name='--', values=None, **kargs):
         debug('creating %r with %r %r' % (cls, args, kargs))
         instance = super(CmdBase, cls).__new__(cls)
-        for name, value in instances(ClsAttr, cls):
-            debug('converting %s from class to instance attribute' % name)
-            setattr(instance, name, value.to_instance(defaults=defaults))
+        if root is None: root = instance
+        if values is None: values = {}
+        for attr, value in instances(ClsAttr, cls):
+            debug('converting %s from class to instance attribute' % attr)
+            setattr(instance, attr, value.to_instance(root=root, prefix=name, values=values))
         return instance
+
+
+class CmdRoot(CmdBase):
+
+    defaults = ClsAttr(InsAttr(TypedAttr, type=bool))
+
+    def prompt(self, name, value):
+        if name == '--defaults': return  # circular!
+        if not self.defaults: return  # should not ask the user
+        return value
+

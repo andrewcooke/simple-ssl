@@ -2,7 +2,7 @@
 from logging import basicConfig, DEBUG, debug
 from unittest import TestCase
 
-from script.argp import ArgPOpt, ArgPRun
+from script.argp import ArgP, ArgPRun, ArgPRoot
 from script.base import CmdBase, ClsAttr, InsAttr
 
 
@@ -10,9 +10,7 @@ basicConfig(level=DEBUG)
 
 
 class Foo(CmdBase):
-
-    foo = ArgPOpt(InsAttr)
-
+    foo = ArgP(InsAttr)
 
 class ArgPTest(TestCase):
 
@@ -25,13 +23,12 @@ class ArgPTest(TestCase):
 
 
 class Bar(CmdBase):
-    bar = ArgPOpt(InsAttr)
+    bar = ArgP(InsAttr)
 
-class Foo2(CmdBase):
-    bar = ArgPOpt(Bar)
-    foo = ArgPOpt(InsAttr)
+class Foo2(ArgPRoot):
+    bar = ArgP(Bar)
+    foo = ArgP(InsAttr)
     def __call__(self): pass
-
 
 class NestedTest(TestCase):
 
@@ -42,4 +39,6 @@ class NestedTest(TestCase):
         args = parser.parse_args(['--foo', 'poop', '--bar-bar', 'doop'])
         assert args.foo == 'poop', args
         cmd = argp.construct(args, {})
-        assert cmd.bar.bar._default == 'doop', cmd.bar.bar._default
+        assert cmd.bar._name == '--bar', cmd.bar._name
+        assert cmd.bar.bar._name == '--bar-bar', cmd.bar.bar._name
+        assert cmd.bar.bar._value == 'doop', cmd.bar.bar._value

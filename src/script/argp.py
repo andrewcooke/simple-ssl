@@ -1,18 +1,16 @@
 
 from argparse import ArgumentParser
 
-from script.base import ClsAttr, instances, CmdBase
+from script.base import ClsAttr, instances, CmdBase, CmdRoot
 
 
-class ArgPOpt(ClsAttr):
+class ArgP(ClsAttr):
 
-    def add_argument(self, parser, prefixes=()):
+    def add_argument(self, parser, prefix='--'):
         if issubclass(self._itype, CmdBase):
-            for name, value in instances(ArgPOpt, self._itype):
-                value.add_argument(parser, prefixes=prefixes + (name,))
+            for name, value in instances(ArgP, self._itype):
+                value.add_argument(parser, prefix=prefix + name + '-')
         else:
-            prefix = '--' + '-'.join(prefixes)
-            if prefixes: prefix += '-'
             parser.add_argument(prefix + self._name)
 
 
@@ -27,11 +25,19 @@ class ArgPRun:
 
     def construct(self, args, kargs):
         kargs = dict(kargs)
-        kargs['defaults'] = vars(args)
+        kargs['values'] = vars(args)
         return self._cmd(**kargs)
 
     def build_parser(self):
         parser = ArgumentParser(description=self._cmd.__doc__)
-        for name, value in instances(ArgPOpt, self._cmd):
+        for name, value in instances(ArgP, self._cmd):
             value.add_argument(parser)
         return parser
+
+
+class ArgPRoot(CmdRoot):
+    '''
+    Includes useful utilities (printing, etc).
+    '''
+
+    defaults = ArgP(CmdRoot.defaults)

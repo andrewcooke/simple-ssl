@@ -12,5 +12,5 @@ class AttrTest(TestCase):
     def test_foo(self):
         assert isinstance(Foo.foo, ClsAttr), type(Foo.foo)
         foo = Foo()
-        assert foo.foo._name == 'foo', foo.foo._name
+        assert foo.foo._name == '--foo', foo.foo._name
         assert isinstance(foo.foo, InsAttr), type(foo.foo)
