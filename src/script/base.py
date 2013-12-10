@@ -1,7 +1,7 @@
 
 from logging import debug
 
-from script.attr import TypedAttr, InsAttr
+from script.attr import TypedAttr, InsAttr, BoolAttr
 
 
 # the classes here are intended to support the writing of scripts that
@@ -21,8 +21,8 @@ from script.attr import TypedAttr, InsAttr
 # - programmer defines a script using classes, marking attributes
 # - at run time:
 #   - CmdMeta creates class, setting names on attributes.
-#   - ArgPRun collects ArgPOpt attributes, generates appropriate argparse
-#     specification, parses command line and instantiates the class.
+#   - ArgPRun collects ArgP attributes, generates appropriate argparse
+#     specification, parses command line, instantiates and calls the class.
 #   - CmdBase converts class to instance attributes on creation.
 #   - Command line values are passed to the __init__, where they are
 #     used to set values.
@@ -98,8 +98,7 @@ class CmdMeta(type):
 
 class CmdBase(metaclass=CmdMeta):
     '''
-    Converts class to instance attributes.  Users should subclass this (or a
-    child).
+    Converts class to instance attributes.
     '''
 
     def __init__(self, name='--', **ignored):
@@ -117,11 +116,14 @@ class CmdBase(metaclass=CmdMeta):
 
 
 class CmdRoot(CmdBase):
+    '''
+    Provides basic services required by all attributes (things like prompts
+    and logging).
+    '''
 
-    defaults = ClsAttr(InsAttr(TypedAttr, type=bool))
+    defaults = ClsAttr(BoolAttr)
 
     def prompt(self, name, value):
         if name == '--defaults': return  # circular!
         if not self.defaults: return  # should not ask the user
         return value
-

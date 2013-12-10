@@ -25,8 +25,24 @@ class InsAttr:
 
 class TypedAttr(InsAttr):
 
+    def __init__(self, name, type, root=None, value=None, **kargs):
+        self._type = type
+        super().__init__(name, root=root, value=value, **kargs)
+
     def __get__(self, cmd, cls):
         if not self._prompted:
             self._value = self._root.prompt(self._name, self._value)
             self._prompted = True
         return self._type(self._value)
+
+
+class StrAttr(TypedAttr):
+
+    def __init__(self, name, root=None, value=None, **kargs):
+        super().__init__(name, str, root=root, value=value, **kargs)
+
+
+class BoolAttr(TypedAttr):
+
+    def __init__(self, name, root=None, value=None, **kargs):
+        super().__init__(name, bool, root=root, value=value, **kargs)

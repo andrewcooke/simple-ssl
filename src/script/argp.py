@@ -16,23 +16,21 @@ class ArgP(ClsAttr):
 
 class ArgPRun:
 
-    def __init__(self, cmd):
+    def __init__(self, cmd, **kargs):
         self._cmd = cmd
-
-    def __call__(self, **kargs):
         parser = self.build_parser()
         self.construct(parser.parse_args(), kargs)()
-
-    def construct(self, args, kargs):
-        kargs = dict(kargs)
-        kargs['values'] = vars(args)
-        return self._cmd(**kargs)
 
     def build_parser(self):
         parser = ArgumentParser(description=self._cmd.__doc__)
         for name, value in instances(ArgP, self._cmd):
             value.add_argument(parser)
         return parser
+
+    def construct(self, args, kargs):
+        kargs = dict(kargs)
+        kargs['values'] = vars(args)
+        return self._cmd(**kargs)
 
 
 class ArgPRoot(CmdRoot):

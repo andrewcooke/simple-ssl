@@ -30,6 +30,7 @@ class Foo2(ArgPRoot):
     foo = ArgP(InsAttr)
     def __call__(self): pass
 
+
 class NestedTest(TestCase):
 
     def test_nested(self):
